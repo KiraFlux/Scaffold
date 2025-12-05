@@ -1,0 +1,22 @@
+from pathlib import Path
+
+from botix.core.registries import UnitEntityRegistry
+from botix.impl.loaders import ProjectEntityLoader
+
+
+def _test() -> None:
+    root = Path("/Botix-Scripts/test/Mock")
+
+    project = ProjectEntityLoader(root / "Модели").load()
+
+    unit_registry = UnitEntityRegistry(project)
+
+    for key in unit_registry.getAll():
+        unit = unit_registry.get(key)
+        print(key, unit)
+
+    return
+
+
+if __name__ == "__main__":
+    _test()
