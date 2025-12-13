@@ -56,6 +56,12 @@ class Config:
         )
 
     @staticmethod
+    def search_by_masks_recursive(root_folder: Path, masks: Iterable[str]) -> Iterator[Path]:
+        """Yield files in folder (recursively) matching any of the provided glob masks."""
+        for mask in masks:
+            yield from root_folder.rglob(mask)
+
+    @staticmethod
     def search_by_masks(target_folder: Path, masks: Iterable[str]) -> Iterator[Path]:
         """Yield files in target folder matching any of the provided glob masks"""
         for mask in masks:

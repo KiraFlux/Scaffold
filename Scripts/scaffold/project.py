@@ -14,6 +14,7 @@ class Project:
 
     def __init__(self, config: Config) -> None:
         """Конфигурация проекта"""
+        self.config: Final = config
 
         self._part_model_registry: Final[Registry[PartModel]] = Registry(
             lambda identifier: PartModel(
