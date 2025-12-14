@@ -16,11 +16,11 @@ class Logger:
 
     __intend: int = field(init=False, default=0)
 
-    def log_info(self, message: str) -> None:
+    def info(self, message: str) -> None:
         """Write an Info-level log to stdout"""
         sys.stdout.write(self._format_log("info", message))
 
-    def log_error(self, message: str) -> None:
+    def error(self, message: str) -> None:
         """Write an Error-level log to stderr"""
         sys.stderr.write(self._format_log("error", message))
 

@@ -13,10 +13,16 @@ class Model:
     Описание сущности 3D-модели
     """
 
-    def __init__(self, config: Config, content_directory: Path) -> None:
+    def __init__(self, config: Config, content_directory: Path, model_file_extension: str) -> None:
         """
+        :param config: Конфигурация проекта
         :param content_directory: Путь к директории файлов модели
+        :param model_file_extension: Расширение файла модели
         """
+
+        path = content_directory / self._nameless_filename_from_extension(model_file_extension)
+        if not path.exists():
+            raise FileNotFoundError(f"Model not found: {path}")
 
         self.content_directory: Final = content_directory
         """Путь к директории файлов модели"""
@@ -54,7 +60,7 @@ class PartModel(Model):
     """
 
     def __init__(self, config: Config, content_directory: Path):
-        super().__init__(config, content_directory)
+        super().__init__(config, content_directory, config.part_model_extension)
 
         self.transitions: Final = self.__get_transitions(config)
         """Пути к файлам обменного формата модели"""
@@ -69,7 +75,7 @@ class AssemblyUnitModel(Model):
     """
 
     def __init__(self, config: Config, content_directory: Path):
-        super().__init__(config, content_directory)
+        super().__init__(config, content_directory, config.assembly_unit_model_extension)
 
         self.parts: Final = self.__get_parts(config)
         """Модели деталей"""
@@ -78,7 +84,7 @@ class AssemblyUnitModel(Model):
         """Модели сборочных единиц"""
 
     def __get_parts(self, config: Config) -> Sequence[Model]:
-        return self._apply_on_paths(config, lambda path: Model(config, path), config.part_model_extension)
+        return self._apply_on_paths(config, lambda path: PartModel(config, path), config.part_model_extension)
 
     def __get_assembly_units(self, config: Config) -> Sequence[AssemblyUnitModel]:
         return self._apply_on_paths(config, lambda path: AssemblyUnitModel(config, path), config.assembly_unit_model_extension)

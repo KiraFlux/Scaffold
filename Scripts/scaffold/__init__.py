@@ -1,5 +1,5 @@
 from scaffold._config import Config
-from scaffold._jobs import Job
+from scaffold._jobs import ModelInfoJob
 from scaffold._models import AssemblyUnitModel
 from scaffold._models import Model
 from scaffold._models import PartModel
