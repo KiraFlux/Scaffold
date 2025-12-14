@@ -3,11 +3,11 @@
 import sys
 from pathlib import Path
 
-from scaffold.cli import CleanupCommandRunner
-from scaffold.cli import CommandLineInterface
-from scaffold.cli import DisplayModelCommandRunner
-from scaffold.config import Config
-from scaffold.project import Project
+from scaffold import Config
+from scaffold import Project
+from scaffold._cli import CleanupCommandRunner
+from scaffold._cli import CommandLineInterface
+from scaffold._cli import DisplayModelCommandRunner
 
 
 def _start():
@@ -20,7 +20,9 @@ def _start():
     command_runner = cli.get(args.mode).create(args)
 
     try:
-        command_runner.run(Project(Config.default(Path(args.root_directory).resolve())))
+        config_default = Config.default(Path(args.root_directory).resolve())
+        project = Project(config_default)
+        command_runner.run(project)
 
     except Exception as e:
         sys.stderr.write(str(e))

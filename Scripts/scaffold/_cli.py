@@ -24,10 +24,10 @@ from typing import Optional
 from typing import Sequence
 from typing import final
 
-from scaffold.models import AssemblyUnitModel
-from scaffold.models import Model
-from scaffold.models import PartModel
-from scaffold.project import Project
+from scaffold import AssemblyUnitModel
+from scaffold import PartModel
+from scaffold import Project
+from scaffold._models import Model
 
 
 @dataclass(kw_only=True)

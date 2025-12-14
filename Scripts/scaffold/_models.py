@@ -5,7 +5,7 @@ from typing import Callable
 from typing import Final
 from typing import Sequence
 
-from scaffold.config import Config
+from scaffold import Config
 
 
 class Model:
