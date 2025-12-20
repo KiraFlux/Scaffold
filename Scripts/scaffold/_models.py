@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Iterable, Mapping, Optional
 from typing import Final
 from typing import Sequence
 
@@ -85,14 +86,36 @@ class AssemblyUnitModel(Model):
     def __init__(self, config: Config, content_directory: Path):
         super().__init__(config, content_directory, config.assembly_unit_model_extension)
 
-        self.parts: Final = self.__get_parts(config)
+        self.parts: Final[Mapping] = self.__load_parts(config)
         """Модели деталей"""
 
-        self.assembly_units: Final = self.__get_assembly_units(config)
+        self.assembly_units: Final[Mapping] = self.__load_assembly_units(config)
         """Модели сборочных единиц"""
 
-    def __get_parts(self, config: Config) -> Sequence[Model]:
-        return self._apply_on_paths(config, lambda path: PartModel(config, path), config.part_model_extension)
+        self.export: Final = self.__load_export(config)
+        """Параметры экспорта артефактов"""
 
-    def __get_assembly_units(self, config: Config) -> Sequence[AssemblyUnitModel]:
-        return self._apply_on_paths(config, lambda path: AssemblyUnitModel(config, path), config.assembly_unit_model_extension)
+    def __load_parts(self, config: Config) -> Mapping[str, PartModel]:
+        parts = self._apply_on_paths(config, lambda path: PartModel(config, path), config.part_model_extension)
+        
+        return {
+            part.content_directory.stem : part
+            for part in parts
+        }
+
+    def __load_assembly_units(self, config: Config) -> Mapping[str, AssemblyUnitModel]:
+        units = self._apply_on_paths(config, lambda path: AssemblyUnitModel(config, path), config.assembly_unit_model_extension)
+        
+        return {
+            unit.content_directory.stem : unit
+            for unit in units
+        }
+
+    def __load_export(self, config: Config) -> Optional[Mapping[str, int]]:
+        p = self.content_directory / self._nameless_filename_from_extension(config.assembly_unit_model_export_settings_extension)
+        
+        if not p.exists():
+            return None
+
+        with open(p) as f:
+            return json.load(f)

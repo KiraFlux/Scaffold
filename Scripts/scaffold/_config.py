@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, Optional
 from typing import Iterator
 from typing import Sequence
 
@@ -16,15 +16,18 @@ class Config:
     """Директория выходных артефактов"""
 
     # расширения
-
-    part_model_extension: str = "m3d"
+    
+    part_model_extension: str
     """Расширение файла модели детали"""
 
     part_model_transition_file_extensions: Sequence[str]
     """Расширения файлов обменного формата для моделей"""
 
-    assembly_unit_model_extension: str = "a3d"
+    assembly_unit_model_extension: str
     """Расширение файла модели сборочной единицы"""
+
+    assembly_unit_model_export_settings_extension: str
+    """Расширение файла параметров экспорта артефактов"""
 
     model_render_extensions: Sequence[str]
     """Расширения файлов рендеров модели"""
@@ -40,6 +43,7 @@ class Config:
             artifacts_directory=root_directory / "Artifacts",
             part_model_extension="m3d",
             assembly_unit_model_extension="a3d",
+            assembly_unit_model_export_settings_extension="export",
             model_render_extensions=(
                 "jpg",
                 "png",
@@ -81,11 +85,11 @@ class Config:
     def get_identifier_from_dir(self, dir: Path) -> str:
         return dir.relative_to(self.models_directory).__str__().replace('/', '.')
     
-    def content_path_from_identifier(self, identifier: str) -> Path:
+    def content_path_from_identifier(self, identifier: str) -> Optional[Path]:
         """Получить путь к директории модели из идентификатора"""
         path = Path(self.models_directory).joinpath(identifier)
 
         if path.exists():
             return path
 
-        raise FileNotFoundError(f"Directory '{path=}' ({identifier=}) not exists")
+        return None

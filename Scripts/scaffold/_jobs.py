@@ -9,6 +9,7 @@ from scaffold._logger import Logger
 from scaffold._models import AssemblyUnitModel
 from scaffold._models import Model
 from scaffold._models import PartModel
+from scaffold._project import Project
 
 class Job:
 
@@ -38,7 +39,7 @@ class ModelInfoJob(Job):
     def _display_assembly_unit_model(self, assembly_unit_model: AssemblyUnitModel) -> None:
         self._log.push()
 
-        for model in chain(assembly_unit_model.parts, assembly_unit_model.assembly_units):
+        for model in chain(assembly_unit_model.parts.values(), assembly_unit_model.assembly_units.values()):
             self._display_model(model)
 
         self._log.pop()
@@ -62,9 +63,9 @@ class ModelInfoJob(Job):
 
 class MakeArtifactsJob(Job):
 
-    def __init__(self, artifacts_directory: Path):
+    def __init__(self, project: Project):
         super().__init__()
-        self._artifacts_directory: Final = artifacts_directory
+        self.project: Final = project
 
     def _link(self, s: str, path: str) -> str:
         return f"[`{s}`]({path})"
@@ -101,9 +102,6 @@ class MakeArtifactsJob(Job):
         transitions = [
             ('zip', f'./../{unit.identifier}--{current_date}.zip'),
         ]
-
-        # if unit.transition_assembly:
-        #     transitions.append(('step', unit.transition_assembly.name))
 
         transitions_string = ' '.join(
             self._link(name, path)
@@ -154,7 +152,11 @@ class MakeArtifactsJob(Job):
         return "\n\nФайл сгенерирован инструментами проекта [Botix](https://github.com/KiraFlux/Botix)\n"
 
     def run(self, unit: AssemblyUnitModel) -> None:
-        unit_artifacts_directory = self._artifacts_directory / unit.identifier
+        if unit.export is None:
+            print("no export file")
+            return
+        
+        unit_artifacts_directory = self.project.config.artifacts_directory / unit.identifier
 
         #
 
@@ -174,14 +176,24 @@ class MakeArtifactsJob(Job):
 
         current_date = self._date()
 
-        with open(unit_artifacts_directory / "README.md", "wt", encoding="utf-8") as out:
+        def _resolve_part_by_key(key: str) -> Optional[PartModel]:
+            ret = self.project.get_part_model(key)
 
+            if ret is not None:
+                return ret
+            
+            return unit.parts.get(key)
+            
+
+        with open(unit_artifacts_directory / "README.md", "wt", encoding="utf-8") as out:
             out.write(self._make_header(unit, current_date))
 
-            count = 1
+            for part_id, count in unit.export.items():
+                part = _resolve_part_by_key(part_id)
 
-            for part in unit.parts:
-                part: PartModel
+                if part is None:
+                    print(f"fail: {part_id}")
+                    continue
 
                 def _name_transformer(s: str) -> str:
                     return f"{s}--{count}x--{unit.identifier}"
@@ -192,7 +204,7 @@ class MakeArtifactsJob(Job):
             out.write(self._make_footer())
 
 
-        archive_path = self._artifacts_directory / f"{unit.identifier}--{current_date}"
+        archive_path = self.project.config.artifacts_directory / f"{unit.identifier}--{current_date}"
 
         print(f"{archive_path=}")
         shutil.make_archive(
