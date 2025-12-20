@@ -1,6 +1,8 @@
+from datetime import datetime
 from itertools import chain
 from pathlib import Path
-from typing import Final
+import shutil
+from typing import Callable, Final, Optional
 from typing import Sequence
 
 from scaffold._logger import Logger
@@ -8,17 +10,19 @@ from scaffold._models import AssemblyUnitModel
 from scaffold._models import Model
 from scaffold._models import PartModel
 
-
-class ModelInfoJob:
+class Job:
 
     def __init__(self) -> None:
         self._log: Final = Logger(self.__class__.__name__)
 
+
+class ModelInfoJob(Job):
+    
     def display(self, model: Model) -> None:
         self._display_model(model)
 
     def _display_model(self, model: Model) -> None:
-        self._log.info(f"{model.__class__.__name__} {model.content_directory!s}")
+        self._log.info(f"{model.identifier} {model.__class__.__name__} ({model.content_directory})")
         self._display_list("Renders", model.renders)
 
         if isinstance(model, PartModel):
@@ -54,3 +58,149 @@ class ModelInfoJob:
 
         self._log.pop()
         self._log.info("")
+
+
+class MakeArtifactsJob(Job):
+
+    def __init__(self, artifacts_directory: Path):
+        super().__init__()
+        self._artifacts_directory: Final = artifacts_directory
+
+    def _link(self, s: str, path: str) -> str:
+        return f"[`{s}`]({path})"
+
+    def _img(self, src: str, height: int) -> str:
+        return f'<img src="{src}" height="{height}">'
+
+    def _date(self) -> str:
+        return datetime.now().strftime("%Y.%m.%d")
+
+    def _make_images_table(self, images: Sequence[Path], main_height: int) -> str:
+        images_total = len(images)
+
+        if images_total == 0:
+            return ""
+
+        main_image, *other_images = (i.name for i in images)
+
+        main_img_tag = self._img(main_image, main_height)
+
+        if len(other_images) == 0:
+            return main_img_tag
+
+        other_image_height = main_height // (images_total - 1)
+
+        other_images_tags_string = '\n'.join((
+            self._img(i, other_image_height) + "<br>"
+            for i in other_images
+        ))
+
+        return f'\n<table>\n<tr valign="top">\n<td>\n{main_img_tag}\n</td>\n<td>\n{other_images_tags_string}\n</td>\n</tr>\n</table>\n'
+
+    def _make_header(self, unit: AssemblyUnitModel, current_date: str) -> str:
+        transitions = [
+            ('zip', f'./../{unit.identifier}--{current_date}.zip'),
+        ]
+
+        # if unit.transition_assembly:
+        #     transitions.append(('step', unit.transition_assembly.name))
+
+        transitions_string = ' '.join(
+            self._link(name, path)
+            for name, path in transitions
+        )
+
+        return f"""
+# [{unit.identifier}](.)
+
+[Выпуск от {current_date}](.) {transitions_string}
+
+{self._make_images_table(unit.renders, 360)}
+
+# Детали
+    """
+
+    def _make_part_block(self, part: PartModel, count: int, name_transformer: Callable[[str], str]) -> str:
+        images_html = '\n'.join(
+            f'<td>{self._img(i.name, 180)}</td>'
+            for i in part.renders
+        )
+
+        def _makeExt(p: Path) -> str:
+            return '.'.join(p.suffixes)
+
+        transitions_string = ' '.join(
+            self._link(_makeExt(t), name_transformer(t.name))
+            for t in part.transitions
+        )
+
+        return f"""
+<blockquote>
+
+## {part.identifier} - {count} шт.
+
+<table>
+<tr valign="top">
+{images_html}
+</tr>
+</table>
+
+{transitions_string}
+
+</blockquote>
+    """
+
+    def _make_footer(self) -> str:
+        return "\n\nФайл сгенерирован инструментами проекта [Botix](https://github.com/KiraFlux/Botix)\n"
+
+    def run(self, unit: AssemblyUnitModel) -> None:
+        unit_artifacts_directory = self._artifacts_directory / unit.identifier
+
+        #
+
+        if unit_artifacts_directory.exists():
+            print("cleanup...")
+            shutil.rmtree(unit_artifacts_directory)
+
+        unit_artifacts_directory.mkdir(parents=True, exist_ok=True)
+
+        #
+
+        def _move(p: Optional[Path], name_transformer: Callable[[str], str] = str) -> None:
+            if p:
+                dst = unit_artifacts_directory / (name_transformer(p.parent.stem) + p.suffix)
+                print(f"copy: {dst.name}")
+                shutil.copyfile(p, dst)
+
+        current_date = self._date()
+
+        with open(unit_artifacts_directory / "README.md", "wt", encoding="utf-8") as out:
+
+            out.write(self._make_header(unit, current_date))
+
+            count = 1
+
+            for part in unit.parts:
+                part: PartModel
+
+                def _name_transformer(s: str) -> str:
+                    return f"{s}--{count}x--{unit.identifier}"
+
+                for transition in part.transitions:
+                    _move(transition, _name_transformer)
+
+            out.write(self._make_footer())
+
+
+        archive_path = self._artifacts_directory / f"{unit.identifier}--{current_date}"
+
+        print(f"{archive_path=}")
+        shutil.make_archive(
+            base_name=str(archive_path),
+            format="zip",
+            root_dir=str(unit_artifacts_directory),
+        )
+
+        print(f"All done! {unit.identifier}")
+
+        return

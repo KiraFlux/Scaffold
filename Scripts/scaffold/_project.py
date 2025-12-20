@@ -20,14 +20,14 @@ class Project:
         self._part_model_registry: Final[Registry[PartModel]] = Registry(
             lambda identifier: PartModel(
                 config,
-                config.content_path_from_identifier(identifier)
+                config.content_path_from_identifier(identifier),
             )
         )
 
         self._assembly_unit_model_registry: Final[Registry[AssemblyUnitModel]] = Registry(
             lambda identifier: AssemblyUnitModel(
                 config,
-                config.content_path_from_identifier(identifier)
+                config.content_path_from_identifier(identifier),
             )
         )
 

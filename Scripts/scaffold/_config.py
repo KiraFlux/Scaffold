@@ -78,6 +78,9 @@ class Config:
                 if any(entry.glob(mask)):
                     yield entry
 
+    def get_identifier_from_dir(self, dir: Path) -> str:
+        return dir.relative_to(self.models_directory).__str__().replace('/', '.')
+    
     def content_path_from_identifier(self, identifier: str) -> Path:
         """Получить путь к директории модели из идентификатора"""
         path = Path(self.models_directory).joinpath(identifier)

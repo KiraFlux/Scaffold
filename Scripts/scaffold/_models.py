@@ -13,7 +13,12 @@ class Model:
     Описание сущности 3D-модели
     """
 
-    def __init__(self, config: Config, content_directory: Path, model_file_extension: str) -> None:
+    def __init__(
+            self, 
+            config: Config, 
+            content_directory: Path, 
+            model_file_extension: str,
+        ) -> None:
         """
         :param config: Конфигурация проекта
         :param content_directory: Путь к директории файлов модели
@@ -26,6 +31,9 @@ class Model:
 
         self.content_directory: Final = content_directory
         """Путь к директории файлов модели"""
+
+        self.identifier: Final = config.get_identifier_from_dir(self.content_directory) 
+        """Идентификатор модели"""
 
         self.renders: Final = self.__get_renders(config)
         """Пути к рендерам модели"""
